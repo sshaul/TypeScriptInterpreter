@@ -2,6 +2,8 @@
 // We need to figure out how to write test cases (I have examples below but can't make a check)
 // We need to do handle Binops in interp
 // We need to do parsing (doing this will make testing super easy!)
+import { expect } from 'chai';
+
 
 // Defining ExprC
 type ExprC = { tag: 'True' }
@@ -138,7 +140,125 @@ function parse(s: any[]): ExprC
         return { tag: 'False' };
 }
 
-console.log(interp(parse([5]), []));
-console.log(handleIf(parse([3]), parse([7]), parse([1]), []));
-console.log(interp({ tag: 'AppC', fun: { tag: 'LamC', args: ["x", "y"], body: { tag: 'IdC', id: "y" } }, args: [{ tag: 'NumC', n: 5 }, { tag: 'NumC', n: 7 }] }, []));
-console.log(interp({ tag: 'AppC', fun: { tag: 'LamC', args: ["a", "b"], body: { tag: 'IfC', test: { tag: 'IdC', id: "a" }, first: { tag: 'IdC', id: "b" }, second: parse([2]) } }, args: [parse(['true']), parse(['false'])] }, []));
+//console.log(interp(parse([5]), []));
+//console.log(handleIf(parse([3]), parse([7]), parse([1]), []));
+//console.log(interp({ tag: 'AppC', fun: { tag: 'LamC', args: ["x", "y"], body: { tag: 'IdC', id: "y" } }, args: [{ tag: 'NumC', n: 5 }, { tag: 'NumC', n: 7 }] }, []));
+//console.log(interp({ tag: 'AppC', fun: { tag: 'LamC', args: ["a", "b"], body: { tag: 'IfC', test: { tag: 'IdC', id: "a" }, first: { tag: 'IdC', id: "b" }, second: parse([2]) } }, args: [parse(['true']), parse(['false'])] }, []));
+
+
+// ------------------------- Parse tests ----------------------- // 
+describe('Parse test for number', () => {
+    it('should create a numC', () => {
+        const result = parse([3]);
+        expect(result).to.have.deep.property('tag', 'NumC');
+        expect(result).to.have.deep.property('n', 3);
+    })
+})
+
+describe('Parse test for true value', () => {
+    it('should create True', () => {
+        const result = parse(['true']);
+        expect(result).to.have.deep.property('tag', 'True');
+    })
+})
+
+describe('Parse test for false value', () => {
+    it('should create False', () => {
+        const result = parse(['false']);
+        expect(result).to.have.deep.property('tag', 'False');
+    })
+})
+
+// ------------------------- Interp tests -------------------- //
+describe('Interp test for true expression', () => {
+    it('should create a true boolV', () => {
+        const result = interp({tag: 'True'}, []);
+        expect(result).to.have.deep.property('tag', 'BoolV');
+        expect(result).to.have.deep.property('val', true);
+    })
+})
+
+describe('Interp test for false expression', () => {
+    it('should create a false boolV', () => {
+        const result = interp({tag: 'False'}, []);
+        expect(result).to.have.deep.property('tag', 'BoolV');
+        expect(result).to.have.deep.property('val', false);
+    })
+})
+
+describe('Interp test for number expression', () => {
+    it('should create a numV', () => {
+        const result = interp({tag: 'NumC', n: 3}, []);
+        expect(result).to.have.deep.property('tag', 'NumV');
+        expect(result).to.have.deep.property('val', 3);
+    })
+})
+
+describe('Interp test for variable reference expression', () => {
+    it('should create a numV for the variable', () => {
+        const result = interp({tag: 'IdC', id: "x"}, 
+            [{tag : 'Binding', name: "x", val: {tag : 'NumV', val: 3}}]);
+        expect(result).to.have.deep.property('tag', 'NumV');
+        expect(result).to.have.deep.property('val', 3);
+    })
+})
+
+describe('Interp test for a LamC expression', () => {
+    it('should create a cloV', () => {
+        const result = interp({tag: 'LamC', args: ["x", "y"],
+            body: {tag : 'BinopC', op: "+", l: {tag : 'NumC', n: 3},
+                r: {tag: 'NumC', n: 2}}}, []);
+        expect(result).to.have.deep.property('tag', 'CloV');
+        expect(result).to.have.deep.property('args', ["x", "y"]);
+        expect(result).to.have.deep.property('body', 
+        {tag : 'BinopC', op: "+", l: {tag : 'NumC', n: 3},
+            r: {tag: 'NumC', n: 2}});
+    })
+})
+
+describe('Interp test for a IfC expression', () => {
+    it('should return the correct value depending on the test', () => {
+        const result = interp({tag: 'IfC', test: parse(['true']), 
+            first: {tag: 'NumC', n: 3}, second: {tag: 'NumC', n: 2}}, []);
+        expect(result).to.have.deep.property('tag', 'NumV');
+        expect(result).to.have.deep.property('val', 3);
+    })
+})
+
+describe('Interp test for a Binop expression', () => {
+    it('should return the correct value depending on the test', () => {
+        const result = interp({tag : 'BinopC', op: "+", 
+            l: {tag : 'NumC', n: 3}, r: {tag: 'NumC', n: 2}}, []);
+        expect(result).to.have.deep.property('tag', 'NumV');
+        expect(result).to.have.deep.property('val', 5);
+    })
+})
+
+describe('Interp test for an AppC expression', () => {
+    it('should return value of the application', () => {
+        const result = interp({tag : 'AppC', fun: {tag: 'IdC', id: "fun1"},
+            args: [{tag: 'NumC', n: 3}]}, 
+            [{tag: 'Binding', name: "fun1", 
+                val: {tag: 'CloV', args: ["x"], body: {tag: 'IdC', id: "x"}, env: []}}]);
+        expect(result).to.have.deep.property('tag', 'NumV');
+        expect(result).to.have.deep.property('val', 3);
+    })
+})
+
+// ------------------------- If tests ----------------------- // 
+describe('handleIf test with a true test expression', () => {
+    it('should return the first value', () => {
+        const result = handleIf(parse(['true']), parse([1]), parse([0]), []);
+        expect(result).to.have.deep.property('tag', 'NumV');
+        expect(result).to.have.deep.property('val', 1);
+    })
+})
+
+describe('handleIf test with a false test expression', () => {
+    it('should return the first value', () => {
+        const result = handleIf(parse(['false']), parse([1]), parse([0]), []);
+        expect(result).to.have.deep.property('tag', 'NumV');
+        expect(result).to.have.deep.property('val', 0);
+    })
+})
+
