@@ -20,12 +20,13 @@ type Value = { tag: 'NumV', val: number }
     | { tag: 'BoolV', val: boolean }
     | { tag: 'CloV', args: string[], body: ExprC, env: Env };
 
+
     const operations = {'+' : (l: number, r: number): number => { return l + r; },
                         '-' : (l: number, r: number): number => { return l - r; },
                         '*' : (l: number, r: number): number => { return l * r; },
                         '/' : (l: number, r: number): number => { return l / r; },
-                        'equal?' : (l: number, r: number): number => { return l == r; },
-                        '<=': (l: number, r: number): number => { return l <= r; }};
+                        'equal?' : (l: number, r: number): boolean => { return l == r; },
+                        '<=': (l: number, r: number): boolean => { return l <= r; }};
 
 // Defining Binding & Env
 type Binding = { tag : 'Binding', name: string, val: Value };
@@ -157,19 +158,19 @@ function parse(s : any[]): ExprC
       }
       
       else {
-         return {tag : 'AppC', fun : (parse s[0]), args : []};
+         return {tag : 'AppC', fun : parse (s[0]), args : []};
       }
    }
    
    else if (s.length == 3 && s[0] == 'lam') {
       if (Array.isArray(s[1])) {
-         if (all-symbols?(s[1])) {
-            if (parameter-conflict?(s[1])) {
+         if (allSymbols(s[1])) {
+            if (parameterConflict(s[1])) {
                throw new Error('UIRE3: parse: Duplicate id in parameters.');
             }
             
             else {
-               return {tag : 'LamC', params : s[1], body : (parse s[2])};
+               return {tag : 'LamC', args : s[1], body : parse (s[2])};
             }
          }
          
@@ -184,14 +185,14 @@ function parse(s : any[]): ExprC
    }
 
    else if (s.length == 4 && s[0] == 'if') {
-      return {tag : 'IfC', test : (parse s[1]), first : (parse s[2]), second : (parse s[3])};
+      return {tag : 'IfC', test : parse (s[1]), first : parse (s[2]), second : parse (s[3])};
    }
    
    else {
       if (s.length == 3) {
-         if (symbol? s[0]) {
-            if (s[0] in operations) {
-               return {tag : 'BinOpC', op : s[0], l : (parse s[1]), r : parse(s[2])};
+         if (isSymbol(s[0])) {
+             if (s[0] in operations) {
+                 return { tag: 'BinopC', op: s[0], l: parse(s[1]), r: parse(s[2])};
             }
             
             else {
@@ -200,16 +201,16 @@ function parse(s : any[]): ExprC
          }
          
          else {
-            return new Error('UIRE3: parse: Not a procedure.'); // Any way to reference s[0] as a string to add more detail?  
+            throw new Error('UIRE3: parse: Not a procedure.'); // Any way to reference s[0] as a string to add more detail?  
          }
       }
       
       else {
-         if (Array.isArray(s[2)) {
+         if (Array.isArray(s[2])) {
             if (s[0] in operations) {
                throw new Error('UIRE3: parse: Expected 2 arguments for binary operation.');
             }
-            return {tag : 'AppC', fun : (parse s[0]), args : s[2].map(parse)};
+            return {tag : 'AppC', fun : parse (s[0]), args : s[2].map(parse)};
          }
          
          else {
@@ -219,23 +220,25 @@ function parse(s : any[]): ExprC
    }
 }
 
-function symbol? (id : any[]) : boolean {
-   return (typeof(id) == 'string' && NaN(id));
+function isSymbol (id : any[]) : boolean {
+   return (typeof(id) == 'string' && isNaN(id));
 }
 
-function allSymbols? (ids : any[]) : boolean {
-   for (id in ids) {
-      if (typeof(id) != 'string' || !NaN(id)) {
-         return false;
-      }
-   }
-   return true;
+function allSymbols(ids: any[]): boolean {
+    let id;
+    for (id in ids) {
+        if (!isNaN(id) || typeof (id) != 'string') {
+            return false;
+        }
+    }
+    return true;
 }
 
-function parameterConflict? (ids : string[]): boolean {
-   seen_ids = [];
+function parameterConflict (ids : string[]): boolean {
+    let seen_ids = [];
+    let id;
    for (id in ids) {
-      if (ids.includes(id)) {
+      if (seen_ids.indexOf(id) >= 0) {
          return false;
       }
       
