@@ -20,7 +20,12 @@ type Value = { tag: 'NumV', val: number }
     | { tag: 'BoolV', val: boolean }
     | { tag: 'CloV', args: string[], body: ExprC, env: Env };
 
-const operations = {};
+const operations = {'+' : +,
+                     '-' : -,
+                     '*' : *,
+                     '/' : /,
+                     'equal?' : equal?,
+                     '<=', <=};
 
 // Defining Binding & Env
 type Binding = { tag : 'Binding', name: string, val: Value };
@@ -128,16 +133,114 @@ function rest<T>(arr: T[]): T[]
         return null; //ERROR (replace "return null;" with the error)
 }
 
-function parse(s: any[]): ExprC
+function parse(s : any[]): ExprC
 {
-    if (s.length == 0)
+    if (s.length == 0) {
         return null;
-    if (typeof (s[0]) == 'number')
-        return {tag : 'NumC', n : s[0]};
-    if (s[0] == 'true')
-        return { tag: 'True' };
-    if (s[0] == 'false')
-        return { tag: 'False' };
+   }
+   
+   else if(s.length == 1) {
+      if (typeof(s[0] == 'number')) {
+         return {tag : 'NumC', n : s[0]};
+      }
+      
+      else if (s[0] == 'true') {
+         return {tag : 'True'};
+      }
+      
+      else if (s[0] == 'false') {
+         return {tag : 'False'};
+      }
+      
+      else if (typeof(s[0] == 'string')) {
+         return {tag : 'IdC', id : s[0]};
+      }
+      
+      else {
+         return {tag : 'AppC', fun : (parse s[0]), args : []};
+      }
+   }
+   
+   else if (s.length == 3 && s[0] == 'lam') {
+      if (Array.isArray(s[1])) {
+         if (all-symbols?(s[1])) {
+            if (parameter-conflict?(s[1])) {
+               throw new Error('UIRE3: parse: Duplicate id in parameters.');
+            }
+            
+            else {
+               return {tag : 'LamC', params : s[1], body : (parse s[2])};
+            }
+         }
+         
+         else {
+            throw new Error ('UIRE3: parse: Lambda parameters ought to be symbols (non-numeric strings).');
+         }
+      }
+      
+      else {
+         throw new Error('UIRE3: parse: Lambda parameters ought to be in a list.');
+      }
+   }
+
+   else if (s.length == 4 && s[0] == 'if') {
+      return {tag : 'IfC', test : (parse s[1]), first : (parse s[2]), second : (parse s[3])};
+   }
+   
+   else {
+      if (s.length == 3) {
+         if (symbol? s[0]) {
+            if (s[0] in operations) {
+               return {tag : 'BinOpC', op : s[0], l : (parse s[1]), r : parse(s[2])};
+            }
+            
+            else {
+               return {tag : 'AppC', fun : s[0], args : s[1].map(parse)};
+            }
+         }
+         
+         else {
+            return new Error('UIRE3: parse: Not a procedure.'); // Any way to reference s[0] as a string to add more detail?  
+         }
+      }
+      
+      else {
+         if (Array.isArray(s[2)) {
+            if (s[0] in operations) {
+               throw new Error('UIRE3: parse: Expected 2 arguments for binary operation.');
+            }
+            return {tag : 'AppC', fun : (parse s[0]), args : s[2].map(parse)};
+         }
+         
+         else {
+            throw new Error ('UIRE3: parse: Function application arguments ought to be in a list.');
+         }
+      }
+   }
+}
+
+function symbol? (id : any[]) : boolean {
+   return (typeof(id) == 'string' && NaN(id));
+}
+
+function allSymbols? (ids : any[]) : boolean {
+   for (id in ids) {
+      if (typeof(id) != 'string' || !NaN(id)) {
+         return false;
+      }
+   }
+   return true;
+}
+
+function parameterConflict? (ids : string[]): boolean {
+   seen_ids = [];
+   for (id in ids) {
+      if (ids.includes(id)) {
+         return false;
+      }
+      
+      seen_ids.push(id);
+   }
 }
 
 //console.log(interp(parse([5]), []));
