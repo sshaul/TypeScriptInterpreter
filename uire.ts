@@ -141,7 +141,7 @@ function parse(s : any[]): ExprC
    }
    
    else if(s.length == 1) {
-      if (typeof(s[0] == 'number')) {
+      if (typeof(s[0]) == 'number') {
          return {tag : 'NumC', n : s[0]};
       }
       
