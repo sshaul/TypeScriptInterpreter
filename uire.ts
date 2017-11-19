@@ -20,12 +20,12 @@ type Value = { tag: 'NumV', val: number }
     | { tag: 'BoolV', val: boolean }
     | { tag: 'CloV', args: string[], body: ExprC, env: Env };
 
-const operations = {'+' : +,
-                     '-' : -,
-                     '*' : *,
-                     '/' : /,
-                     'equal?' : equal?,
-                     '<=', <=};
+    const operations = {'+' : (l: number, r: number): number => { return l + r; },
+                        '-' : (l: number, r: number): number => { return l - r; },
+                        '*' : (l: number, r: number): number => { return l * r; },
+                        '/' : (l: number, r: number): number => { return l / r; },
+                        'equal?' : (l: number, r: number): number => { return l == r; },
+                        '<=': (l: number, r: number): number => { return l <= r; }};
 
 // Defining Binding & Env
 type Binding = { tag : 'Binding', name: string, val: Value };
