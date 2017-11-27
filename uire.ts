@@ -67,8 +67,7 @@ function handleIf(test: ExprC, first: ExprC, second: ExprC, env: Env) : Value
 
 function handleBinop(op: string, l: ExprC, r: ExprC, env: Env): Value
 {
-
-    return null;
+    return operations[op](interp(l, env), interp(r, env));
 }
 
 function handleAppC(fun: ExprC, args: ExprC[], env: Env): Value
