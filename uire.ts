@@ -274,6 +274,29 @@ describe('Parse test for false value', () => {
     })
 })
 
+describe('Parse test for binop', () => {
+   it('should create a BinOpC', () => {
+      cons result = parse(['+', 2, ['*', 2, 3]]);
+      expect(result).to.have.deep.property('tag', 'BinOpC');
+      expect(result).to.have.deep.property('op', '+');
+      expect(result).to.have.deep.property('l', {tag : 'NumC', n : 2});
+      expect(result).to.have.deep.property('r', {tag : 'BinOpC', op : '*',
+                                       l : {tag : 'NumC', n : 2},
+                                       r : {tag : 'NumC', n : 3}});
+   })
+})
+
+describe('Parse test for a lambda expression', () => {
+   it('should create a LamC', () => {
+      const result = parse(['lam', ['x', 'y'] ['+', 'x', 'y']);
+      expect(result).to.have.deep.property('tag', 'LamC');
+      expect(result).to.have.deep.property('args', ['x', 'y']);
+      expect(result).to.have.deep.property('body', {tag : 'BinOpC',
+                                         l : {tag : 'IdC', id : 'x'}
+                                         r : {tag : 'IdC', id : 'y'}});
+   })
+})
+
 // ------------------------- Interp tests -------------------- //
 describe('Interp test for true expression', () => {
     it('should create a true boolV', () => {
